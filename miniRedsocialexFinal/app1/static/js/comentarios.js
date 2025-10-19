@@ -38,7 +38,17 @@ function cargarPub(idPub)
             // ITERAR EN EL ATRIBUTO comenInfo.respuestas
             // CREAR EL BLOQUE HTML CON LA INFORMACION DE LA RESPUESTA
             // ANEXAR ESE BLOQUE AL OBJETO bloqueComentario
+            for (respInfo of comenInfo.respuestas)
+            {
+                bloqueRespuesta = `
+                <div class='border-bottom mb-3 pb-2' id='bloque-${respInfo.id}'>
+                    <strong>${respInfo.autor}</strong><br>
+                    <p>${respInfo.descripcion}</p>
+                </div>
+                `;
+                bloqueComentario += bloqueRespuesta
 
+            }
 
             /* FIN DE RESPUESTAS DE COMENTARIOS */
 
@@ -119,6 +129,15 @@ function mostrarFormularioRespuesta(idComentario, idPublicacion) {
     // TENER EN CUENTA QUE PARA CAPTURAR EL TEXTO DEL COMENTARIO EL ESPACIO DE TEXTO CREADO DEBE TENER UN ID: "respuesta-${idComentario}"
     // EL BOTON A IMPLEMENTAR DEBE TENER ANEXADO COMO EVENTO ONCLICK LA FUNCION enviarRespuesta(<id del comentario>,<id de la publicacion>)
     const formHTML = `
+    <div class="modal-body">
+                <!-- Respuesta -->
+                <textarea class="form-control mb-2" id="respuesta-${idComentario}" rows="2" placeholder="Escribe tu respuesta..."></textarea>
+                <div class="text-end">
+                    <button class="btn btn-primary" onclick="enviarRespuesta(${idComentario},${idPublicacion})">
+                        <i class="fa-solid fa-reply"></i> Responder
+                    </button>
+                </div>
+            </div>
     `;
 
     // SE INSERTA EL FORMULARIO CREADO POR EL USUARIO
@@ -130,14 +149,37 @@ function enviarRespuesta(idComentario, idPublicacion) {
     // PREGUNTA 1 - FUNCION ENVIAR RESPUESTA HACIA EL BACKEND
 
     // CAPTURAR EL OBJETO DEL FORMULARIO CREADO PREVIAMENTE EN DONDE SE ESCRIBE LA RESPUESTA AL COMENTARIO
+    respuestaUsuario = document.getElementById(`respuesta-${idComentario}`)
 
     // VALIDAR QUE EL TEXTO CONTENGA CARACTERES VALIDOS USANDO LA FUNCION .TRIM()
-    
+    if(respuestaUsuario.value.trim() === "")
+    {
+        alert("Por favor escribe una respuesta")
+        return;
+    }    
     // CREAR EL OBJETO JSON CON LOS DATOS INDICADOS EN EL EXAMEN
+    datos = {
+        'respuesta':respuestaUsuario.value,
+        'idComentario':idComentario,
+        'idPublicacion':idPublicacion
+    }
 
     // USAR LA FUNCION FETCH PARA ENVIAR LOS DATOS A LA RUTA '/publicarRespuestaComentario/'
-
     // AL RECIBIR LA RESPUESTA DEL SERVIDOR LIMPIAR EL AREA DE TEXTO DE RESPUESTA AL COMENTARIO Y LLAMAR A LA FUNCION
     // cargarPub PASANDO COMO PARAMETRO EL ID DE LA PUBLICACION (idPublicacion)
+    fetch('/publicarRespuestaComentario/',{
+        method: 'POST',
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": getCookie("csrftoken")
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => response.json())
+    .then(data => {
+        respuestaUsuario.value = ''
+        console.log(data)
+        cargarPub(idPublicacion)
+    })
 
 }
