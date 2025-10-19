@@ -136,14 +136,24 @@ def devolverPublicacion(request):
             lista_respuestas = []
             # PREGUNTA 2 - CARGAR LAS RESPUESTAS A LOS COMENTARIOS
             # SECCION DEL EXAMEN FINAL PARA AGREGAR LAS RESPUESTAS:
+            """"
+            DESARROLLO PREGUNTA 2
+            """
 
-            """
-            CREAR EL OBJETO respuestas QUE CONTIENE LOS COMENTARIOS QUE TIENEN EL ATRIBUTO respuesta_a CON 
-            EL VALOR DEL OBJETO comentarioInfo
-            ITERA EN TODAS LAS RESPUESTAS PARA PODER ANEXAR LA INFORMACION EN LA LISTA lista_respuestas
-            LOS DATOS A ANEXAR SON EL AUTOR, LA DESCRIPCION O CONTENIDO, EL ID DE LA RESPUESTA Y LA FECHA
-            """
-            
+            #CREAR EL OBJETO respuestas QUE CONTIENE LOS COMENTARIOS QUE TIENEN EL ATRIBUTO respuesta_a CON EL VALOR DEL OBJETO comentarioInfo
+            respuestasComentario = comentario.objects.filter(respuesta_a=comentarioInfo).order_by('fecha_creacion')
+
+            #ITERA EN TODAS LAS RESPUESTAS PARA PODER ANEXAR LA INFORMACION EN LA LISTA lista_respuestas
+            #LOS DATOS A ANEXAR SON EL AUTOR, LA DESCRIPCION O CONTENIDO, EL ID DE LA RESPUESTA Y LA FECHA
+
+            for respuestaInfo in respuestasComentario:
+                lista_respuestas.append({
+                    'autor': f"{respuestaInfo.autoCom.first_name} {respuestaInfo.autoCom.last_name}",
+                    'descripcion': respuestaInfo.descripcion,
+                    'id': respuestaInfo.id,
+                    'fecha': respuestaInfo.fecha_creacion.strftime("%d/%m/%Y %H:%M")
+                })
+                    
             # FIN SECCION DE AGREGAR LAS RESPUESTAS
 
 
@@ -259,15 +269,32 @@ def exportarChat(request, idUsuario):
 
 # PREGUNTA 2
 # SI NO DESEA USAR EL CSRF TOKEN EN EL FRONTEND PUEDE UTILIZAR LOS DECORATORS PARA EVITAR SU USO
+@login_required(login_url='/')
 def publicarRespuestaComentario(request):
     # FUNCION PARA RECIBIR EL COMENTARIO DESDE EL FRONTEND
+    """
+    DESARROLLO PREGUNTA 2
+    """
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        """
-        CARGAR LOS DATOS JSON
-        EXTRAER EL CONTENIDO DE LA RESPUESTA, EL ID DEL COMENTARIO PADRE Y DE LA PUBLICACION PADRE
-        OBTENER LOS OBJETOS DE LA BASE DE DATOS
-        CREAR EL NUEVO OBJETO COMENTARIO CON EL ATRIBUTO RESPUESTA_A CONFIGURADO ADECUADAMENTE
-        """
+        # CARGAR LOS DATOS JSON
+        datosRespuesta = json.loads(request.body.decode('utf-8'))
 
+        # EXTRAER EL CONTENIDO DE LA RESPUESTA, EL ID DEL COMENTARIO PADRE Y DE LA PUBLICACION PADRE
+        respuestaTexto = datosRespuesta.get('respuesta')
+        idPublicacion = datosRespuesta.get('idPublicacion')
+        idComentario = datosRespuesta.get('idComentario')
+
+        # OBTENER LOS OBJETOS DE LA BASE DE DATOS
+        objPublicacion = publicacion.objects.get(id=idPublicacion)
+        objComentario = comentario.objects.get(id=idComentario)
+
+        # CREAR EL NUEVO OBJETO COMENTARIO CON EL ATRIBUTO RESPUESTA_A CONFIGURADO ADECUADAMENTE
+        comentario.objects.create(
+            descripcion=respuestaTexto,
+            pubRel = objPublicacion,
+            autoCom = request.user,
+            respuesta_a = objComentario
+        )
+    
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'error': 'Petición inválida'}, status=400)
